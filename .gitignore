@@ -6,4 +6,4 @@
 Minecraft/*
 !Minecraft/mods/
 !Minecraft/config/
-config/spark/tmp-client/spark-*.tmp
+Minecraft/config/spark/tmp-client/spark-*.tmp
