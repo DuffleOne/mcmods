@@ -1,0 +1,8 @@
+# Ignore everything by default
+/*
+
+!.gitignore
+!Minecraft/
+Minecraft/*
+!Minecraft/mods/
+!Minecraft/config/
