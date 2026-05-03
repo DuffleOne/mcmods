@@ -56,6 +56,7 @@ MINECRAFT_DIR="$HOME/path/to/instance/.minecraft" ./update-mods.sh
 
 ## Stuff to know
 
+- The script self-updates from this repo before doing anything else, so you'll always run the latest. Set `MCMODS_SKIP_SELF_UPDATE=1` if you want to pin the version you've got.
 - The script overwrites jars with the same name, so any local edits to existing mod files will be lost. Configs in `Minecraft/config/` aren't touched at the moment; that's a separate thing.
 - If something blows up, you can always nuke your local `mods/` folder and re-run the script for a clean state.
 - If you've got a mod you want added or removed from the pack, ping me.

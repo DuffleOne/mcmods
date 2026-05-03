@@ -10,6 +10,47 @@
 $ErrorActionPreference = 'Stop'
 
 $RepoUrl = 'https://github.com/DuffleOne/mcmods/archive/refs/heads/main.zip'
+$SelfUrl = 'https://raw.githubusercontent.com/DuffleOne/mcmods/main/update-mods.ps1'
+
+function Invoke-SelfUpdate {
+    if ($env:MCMODS_SKIP_SELF_UPDATE -eq '1') { return }
+
+    $ScriptPath = $PSCommandPath
+    if (-not $ScriptPath -or -not (Test-Path -LiteralPath $ScriptPath)) { return }
+
+    $TmpScript = [System.IO.Path]::GetTempFileName()
+    try {
+        $ProgressPreference = 'SilentlyContinue'
+        try {
+            Invoke-WebRequest -Uri $SelfUrl -OutFile $TmpScript -UseBasicParsing
+        } catch {
+            return
+        } finally {
+            $ProgressPreference = 'Continue'
+        }
+
+        # Sanity check: should look like a PowerShell script, not an HTML error page.
+        $FirstLine = Get-Content -LiteralPath $TmpScript -TotalCount 1
+        if ($FirstLine -match '^\s*<') { return }
+
+        $LocalHash  = (Get-FileHash -LiteralPath $ScriptPath -Algorithm SHA256).Hash
+        $RemoteHash = (Get-FileHash -LiteralPath $TmpScript  -Algorithm SHA256).Hash
+
+        if ($LocalHash -ne $RemoteHash) {
+            Write-Host 'Updating script to latest version...'
+            Move-Item -LiteralPath $TmpScript -Destination $ScriptPath -Force
+            $env:MCMODS_SKIP_SELF_UPDATE = '1'
+            & powershell -NoProfile -ExecutionPolicy Bypass -File $ScriptPath
+            exit $LASTEXITCODE
+        }
+    } finally {
+        if (Test-Path -LiteralPath $TmpScript) {
+            Remove-Item -LiteralPath $TmpScript -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Invoke-SelfUpdate
 
 function Get-MinecraftDir {
     if ($env:MINECRAFT_DIR) { return $env:MINECRAFT_DIR }
@@ -56,17 +97,17 @@ try {
 
     if ($Dangling.Count -gt 0) {
         Write-Host ''
-        Write-Host 'These mods exist locally but not in the remote pack:'
-        $Dangling | ForEach-Object { Write-Host "  - $_" }
+        Write-Host "Found mods locally that aren't in the remote pack."
+        Write-Host "I'll ask about each one; default is to keep."
         Write-Host ''
-        $Response = Read-Host 'Delete them? [y/N]'
-        if ($Response -match '^(?i:y|yes)$') {
-            foreach ($f in $Dangling) {
+        foreach ($f in $Dangling) {
+            $Response = Read-Host "Delete $f? [y/N]"
+            if ($Response -match '^(?i:y|yes)$') {
                 Remove-Item -LiteralPath (Join-Path $ModsDir $f) -Force
-                Write-Host "  deleted $f"
+                Write-Host '  deleted'
+            } else {
+                Write-Host '  kept'
             }
-        } else {
-            Write-Host 'Left them in place.'
         }
     }
 

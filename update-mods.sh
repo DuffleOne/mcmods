@@ -7,6 +7,41 @@ set -euo pipefail
 shopt -s nullglob
 
 REPO_URL="https://github.com/DuffleOne/mcmods/archive/refs/heads/main.zip"
+SELF_URL="https://raw.githubusercontent.com/DuffleOne/mcmods/main/update-mods.sh"
+
+self_update() {
+  [ "${MCMODS_SKIP_SELF_UPDATE:-}" = "1" ] && return 0
+  command -v curl >/dev/null 2>&1 || return 0
+
+  local script_dir script_path tmp_script
+  script_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd)" || return 0
+  script_path="$script_dir/$(basename "$0")"
+  [ -f "$script_path" ] || return 0
+  [ -w "$script_path" ] || return 0
+
+  tmp_script="$(mktemp)"
+  if ! curl -fsSL -o "$tmp_script" "$SELF_URL"; then
+    rm -f "$tmp_script"
+    return 0
+  fi
+
+  # Sanity check: the download should look like a bash script.
+  if ! head -n 1 "$tmp_script" | grep -q '^#!'; then
+    rm -f "$tmp_script"
+    return 0
+  fi
+
+  if ! cmp -s "$script_path" "$tmp_script"; then
+    echo "Updating script to latest version..."
+    mv "$tmp_script" "$script_path"
+    chmod +x "$script_path"
+    export MCMODS_SKIP_SELF_UPDATE=1
+    exec "$script_path" "$@"
+  fi
+  rm -f "$tmp_script"
+}
+
+self_update "$@"
 
 detect_mc_dir() {
   if [ -n "${MINECRAFT_DIR:-}" ]; then
@@ -67,22 +102,22 @@ dangling="$(comm -23 <(printf '%s\n' "$local_jars") <(printf '%s\n' "$remote_jar
 
 if [ -n "$dangling" ]; then
   echo
-  echo "These mods exist locally but not in the remote pack:"
-  printf '%s\n' "$dangling" | sed 's/^/  - /'
+  echo "Found mods locally that aren't in the remote pack."
+  echo "I'll ask about each one; default is to keep."
   echo
-  read -rp "Delete them? [y/N] " response
-  case "$response" in
-    [yY]|[yY][eE][sS])
-      while IFS= read -r f; do
-        [ -z "$f" ] && continue
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    read -rp "Delete $f? [y/N] " response < /dev/tty
+    case "$response" in
+      [yY]|[yY][eE][sS])
         rm -f "$MODS_DIR/$f"
-        echo "  deleted $f"
-      done <<< "$dangling"
-      ;;
-    *)
-      echo "Left them in place."
-      ;;
-  esac
+        echo "  deleted"
+        ;;
+      *)
+        echo "  kept"
+        ;;
+    esac
+  done <<< "$dangling"
 fi
 
 echo "Done."
