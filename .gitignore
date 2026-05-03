@@ -2,6 +2,10 @@
 /*
 
 !.gitignore
+!README.md
+!update-mods.sh
+!update-mods.ps1
+!update-mods.bat
 !Minecraft/
 Minecraft/*
 !Minecraft/mods/
