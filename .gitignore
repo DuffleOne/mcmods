@@ -6,6 +6,7 @@
 !update-mods.sh
 !update-mods.ps1
 !update-mods.bat
+!server-auto-commit.sh
 !Minecraft/
 Minecraft/*
 !Minecraft/mods/
