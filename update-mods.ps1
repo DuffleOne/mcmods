@@ -1,6 +1,6 @@
 # Pulls the latest mods from https://github.com/DuffleOne/mcmods and syncs
-# them into your Minecraft mods folder. Override the location by setting
-# $env:MINECRAFT_DIR (point it at the folder that contains mods\).
+# them into your Minecraft mods folder. The script always asks for the
+# Minecraft pack location (the folder that contains mods\).
 #
 # Run from PowerShell:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File .\update-mods.ps1
@@ -52,19 +52,35 @@ function Invoke-SelfUpdate {
 
 Invoke-SelfUpdate
 
-function Get-MinecraftDir {
-    if ($env:MINECRAFT_DIR) { return $env:MINECRAFT_DIR }
-    return Join-Path $env:APPDATA '.minecraft'
+function Read-MinecraftDir {
+    $Default = $env:MINECRAFT_DIR
+    while ($true) {
+        if ($Default) {
+            $Prompt = "Path to your Minecraft pack (the folder containing mods\) [$Default]"
+        } else {
+            $Prompt = 'Path to your Minecraft pack (the folder containing mods\)'
+        }
+        $Input = Read-Host $Prompt
+        if (-not $Input) { $Input = $Default }
+        if (-not $Input) {
+            Write-Host 'Path is required.' -ForegroundColor Red
+            continue
+        }
+        # Expand environment variables like %APPDATA% and a leading ~.
+        $Expanded = [System.Environment]::ExpandEnvironmentVariables($Input)
+        if ($Expanded.StartsWith('~')) {
+            $Expanded = Join-Path $HOME $Expanded.Substring(1).TrimStart('\','/')
+        }
+        if (-not (Test-Path -LiteralPath $Expanded -PathType Container)) {
+            Write-Host "Not a directory: $Expanded" -ForegroundColor Red
+            continue
+        }
+        return $Expanded
+    }
 }
 
-$McDir = Get-MinecraftDir
+$McDir = Read-MinecraftDir
 $ModsDir = Join-Path $McDir 'mods'
-
-if (-not (Test-Path -LiteralPath $McDir)) {
-    Write-Host "Minecraft directory not found: $McDir" -ForegroundColor Red
-    Write-Host "Set `$env:MINECRAFT_DIR to point at the folder containing mods\." -ForegroundColor Red
-    exit 1
-}
 
 New-Item -ItemType Directory -Force -Path $ModsDir | Out-Null
 

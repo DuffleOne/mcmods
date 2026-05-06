@@ -4,7 +4,7 @@ The mods we run on the server. `Minecraft/mods/` is the canonical jar list; `Min
 
 ## Updating your mods
 
-Pick the script for your OS and run it. It'll grab the latest pack from this repo and copy the jars into your `.minecraft/mods` folder. If you've got mods locally that aren't in the pack any more (old jars from a previous version, stuff you added yourself), it'll list them and ask `[y/N]` before deleting; say no and they stay put.
+Pick the script for your OS and run it. It'll ask where your Minecraft pack lives (the folder that contains `mods/`), then grab the latest pack from this repo and copy the jars into that `mods/` folder. If you've got mods locally that aren't in the pack any more (old jars from a previous version, stuff you added yourself), it'll list them and ask `[y/N]` before deleting; say no and they stay put.
 
 No git needed; the script just downloads a zip.
 
@@ -31,27 +31,27 @@ chmod +x update-mods.sh
 
 The `chmod` is a one-off; after that you can just run `./update-mods.sh`.
 
-## Custom launchers (Prism, MultiMC, Modrinth App, CurseForge, ATLauncher...)
+## What path to give it
 
-By default the script writes to the vanilla launcher's mods folder:
+The script always asks where your Minecraft pack lives. Pass the folder that *contains* `mods/`, not the `mods/` folder itself.
 
-- Windows: `%APPDATA%\.minecraft\mods`
-- macOS: `~/Library/Application Support/minecraft/mods`
-- Linux: `~/.minecraft/mods`
+Common locations:
 
-If you're on a custom launcher, the per-instance `.minecraft` lives somewhere else. Find that folder (usually called `.minecraft` or `minecraft` inside the instance dir), then point the script at it with `MINECRAFT_DIR`. The path should be the folder that *contains* `mods/`, not the `mods/` folder itself.
+- Vanilla launcher, Windows: `%APPDATA%\.minecraft`
+- Vanilla launcher, macOS: `~/Library/Application Support/minecraft`
+- Vanilla launcher, Linux: `~/.minecraft`
+- Custom launchers (Prism, MultiMC, Modrinth App, CurseForge, ATLauncher...): the per-instance `.minecraft` (or `minecraft`) folder inside the instance directory.
 
-PowerShell:
+If you set `MINECRAFT_DIR` (bash/zsh) or `$env:MINECRAFT_DIR` (PowerShell), the prompt offers it as the default so you can just press Enter.
+
+```bash
+export MINECRAFT_DIR="$HOME/path/to/instance/.minecraft"
+./update-mods.sh
+```
 
 ```powershell
 $env:MINECRAFT_DIR = "C:\Path\To\Your\Instance\.minecraft"
 .\update-mods.bat
-```
-
-bash/zsh:
-
-```bash
-MINECRAFT_DIR="$HOME/path/to/instance/.minecraft" ./update-mods.sh
 ```
 
 ## Stuff to know

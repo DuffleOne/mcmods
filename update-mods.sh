@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pulls the latest mods from https://github.com/DuffleOne/mcmods and syncs
-# them into your Minecraft mods folder. Override the location by setting
-# MINECRAFT_DIR (point it at the folder that contains mods/, e.g. a Prism
+# them into your Minecraft mods folder. The script always asks for the
+# Minecraft pack location (the folder that contains mods/, e.g. a Prism
 # instance's .minecraft).
 set -euo pipefail
 shopt -s nullglob
@@ -43,16 +43,35 @@ self_update() {
 
 self_update "$@"
 
-detect_mc_dir() {
-  if [ -n "${MINECRAFT_DIR:-}" ]; then
-    printf '%s\n' "$MINECRAFT_DIR"
+prompt_mc_dir() {
+  local default input expanded prompt
+  default="${MINECRAFT_DIR:-}"
+  while :; do
+    if [ -n "$default" ]; then
+      prompt="Path to your Minecraft pack (the folder containing mods/) [$default]: "
+    else
+      prompt="Path to your Minecraft pack (the folder containing mods/): "
+    fi
+    read -rp "$prompt" input < /dev/tty
+    if [ -z "$input" ]; then
+      input="$default"
+    fi
+    # Expand a leading ~ to $HOME.
+    case "$input" in
+      "~"|"~/"*) expanded="$HOME${input#\~}" ;;
+      *) expanded="$input" ;;
+    esac
+    if [ -z "$expanded" ]; then
+      echo "Path is required." >&2
+      continue
+    fi
+    if [ ! -d "$expanded" ]; then
+      echo "Not a directory: $expanded" >&2
+      continue
+    fi
+    printf '%s\n' "$expanded"
     return
-  fi
-  case "$(uname -s)" in
-    Darwin) printf '%s\n' "$HOME/Library/Application Support/minecraft" ;;
-    Linux)  printf '%s\n' "$HOME/.minecraft" ;;
-    *) echo "Unsupported OS: $(uname -s). Set MINECRAFT_DIR to override." >&2; exit 1 ;;
-  esac
+  done
 }
 
 for cmd in curl unzip; do
@@ -62,14 +81,8 @@ for cmd in curl unzip; do
   fi
 done
 
-MC_DIR="$(detect_mc_dir)"
+MC_DIR="$(prompt_mc_dir)"
 MODS_DIR="$MC_DIR/mods"
-
-if [ ! -d "$MC_DIR" ]; then
-  echo "Minecraft directory not found: $MC_DIR" >&2
-  echo "Set MINECRAFT_DIR to point at the folder containing mods/." >&2
-  exit 1
-fi
 
 mkdir -p "$MODS_DIR"
 
